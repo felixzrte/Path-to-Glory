@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { Menu, Github, ExternalLink, Users, Dices } from "lucide-react";
+import { Menu, Github, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
