@@ -1,7 +1,7 @@
+import { createFileRoute } from '@tanstack/react-router'
 import { CodexSection } from '@/components/codex/codex-section';
 import { Footer } from '@/components/footer';
 import { NavigationBar } from '@/components/navigation/navigation-bar';
-import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/codex/')({
   component: CodexPage,
