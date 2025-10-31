@@ -29,8 +29,8 @@ export const Route = createRootRouteWithContext<{
       },
       ...seo({
         title:
-          "TanStack Start | Type-Safe, Client-First, Full-Stack React Framework",
-        description: `TanStack Start is a type-safe, client-first, full-stack React framework. `,
+          "Path to Glory | Wrath & Glory Character Creator & GM Tools",
+        description: `Create and manage characters for Warhammer 40,000: Wrath & Glory. Comprehensive tools for players and Game Masters in the grim darkness of the far future.`,
       }),
     ],
     links: [

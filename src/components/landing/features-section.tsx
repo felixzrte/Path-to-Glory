@@ -1,64 +1,64 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { 
-  Route, 
-  Database, 
-  Zap, 
+  Users, 
+  Dices, 
+  Sword, 
   Shield, 
-  Palette, 
-  Code,
-  Server,
-  Layers
+  BookOpen, 
+  Settings,
+  Star,
+  Zap
 } from "lucide-react"
 
 const features = [
   {
-    icon: Route,
-    title: "TanStack Router",
-    description: "Type-safe, file-based routing with powerful features like nested layouts, loaders, and search params validation.",
-    badge: "Type-Safe"
+    icon: Users,
+    title: "Character Creation",
+    description: "Create detailed characters with full archetype, talent, and gear selection from the Wrath & Glory core rules.",
+    badge: "Core Feature"
   },
   {
-    icon: Database,
-    title: "TanStack Query",
-    description: "Powerful data synchronization with server state management, caching, and background updates built-in.",
-    badge: "Server State"
+    icon: Dices,
+    title: "Dice Rolling",
+    description: "Integrated dice roller with Wrath & Glory mechanics including Wrath dice, complications, and critical hits.",
+    badge: "Mechanics"
   },
   {
-    icon: Code,
-    title: "React 19",
-    description: "Latest React with concurrent features, improved performance, and modern development patterns.",
-    badge: "Latest"
-  },
-  {
-    icon: Zap,
-    title: "Vite",
-    description: "Lightning-fast build tool with hot module replacement and optimized production builds.",
-    badge: "Fast"
+    icon: Sword,
+    title: "Combat Tracker",
+    description: "Track initiative, wounds, stress, and conditions during intense 40K combat encounters.",
+    badge: "Battle"
   },
   {
     icon: Shield,
-    title: "TypeScript",
-    description: "Full TypeScript support with strict typing, IntelliSense, and compile-time error checking.",
-    badge: "Type-Safe"
+    title: "Archetype Library",
+    description: "Access all official archetypes from core rules and supplements, with custom archetype creation tools.",
+    badge: "Characters"
   },
   {
-    icon: Palette,
-    title: "Tailwind CSS v4",
-    description: "Modern utility-first CSS framework with CSS variables and a comprehensive design system.",
-    badge: "Styling"
+    icon: BookOpen,
+    title: "Rule Reference",
+    description: "Quick access to rules, talent descriptions, and game mechanics without flipping through books.",
+    badge: "Reference"
   },
   {
-    icon: Server,
-    title: "SSR Ready",
-    description: "Server-side rendering support with seamless hydration and SEO optimization out of the box.",
-    badge: "Performance"
+    icon: Settings,
+    title: "GM Tools",
+    description: "Manage NPCs, create encounters, and track campaign progress with dedicated Game Master utilities.",
+    badge: "GM Only"
   },
   {
-    icon: Layers,
-    title: "Shadcn/UI",
-    description: "Beautiful, accessible component library with customizable themes and modern design patterns.",
-    badge: "Components"
+    icon: Star,
+    title: "Campaign Management",
+    description: "Track faction standings, corruption, glory points, and character advancement across sessions.",
+    badge: "Campaign"
+  },
+  {
+    icon: Zap,
+    title: "Psyker Powers",
+    description: "Complete psyker discipline management with power descriptions, perils tracking, and psychic phenomena.",
+    badge: "Psychic"
   }
 ]
 
@@ -67,11 +67,11 @@ export function FeaturesSection() {
     <section id="features" className="py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Everything you need to build modern web apps
+          <h2 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Everything you need for Wrath & Glory
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            A carefully curated stack of the best tools and libraries for React development
+            Comprehensive tools for players and Game Masters in the grim darkness of the far future
           </p>
         </div>
         

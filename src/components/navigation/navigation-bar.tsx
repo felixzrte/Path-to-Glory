@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { Menu, Github, ExternalLink } from "lucide-react";
+import { Menu, Github, ExternalLink, Users, Dices } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -21,17 +21,7 @@ interface NavigationItem {
 }
 
 const navigationItems: NavigationItem[] = [
-  { label: "Features", href: "#features", scrollTo: "features" },
-  {
-    label: "Documentation",
-    href: "https://tanstack.com/start/latest/docs/framework/react/overview",
-    isExternal: true,
-  },
-  {
-    label: "GitHub",
-    href: "https://github.com/backpine/tanstack-start-on-cloudflare",
-    isExternal: true,
-  },
+  { label: "Codex", href: "/codex" },
 ];
 
 export function NavigationBar() {
@@ -81,11 +71,11 @@ export function NavigationBar() {
             className="group flex items-center space-x-3 no-underline"
           >
             <div className="flex flex-col">
-              <span className="text-lg lg:text-xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent group-hover:from-primary group-hover:to-primary/80 transition-all duration-300">
-                TanStack Start
+              <span className="font-display text-lg lg:text-xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent group-hover:from-primary group-hover:to-primary/80 transition-all duration-300">
+                Path to Glory
               </span>
               <span className="text-xs text-muted-foreground font-medium tracking-wider">
-                on CLOUDFLARE
+                WRATH & GLORY TOOLS
               </span>
             </div>
           </Link>
@@ -148,11 +138,11 @@ export function NavigationBar() {
                 className="w-[300px] bg-background/95 backdrop-blur-xl border-l border-border/50"
               >
                 <SheetHeader className="text-left space-y-1 pb-6">
-                  <SheetTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                    Navigation
+                  <SheetTitle className="font-display text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                    Path to Glory
                   </SheetTitle>
                   <SheetDescription className="text-muted-foreground">
-                    Explore TanStack Start
+                    Wrath & Glory Reference Codex
                   </SheetDescription>
                 </SheetHeader>
 
