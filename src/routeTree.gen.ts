@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CodexIndexRouteImport } from './routes/codex/index'
+import { Route as CodexSpeciesRouteImport } from './routes/codex/species'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,30 +23,39 @@ const CodexIndexRoute = CodexIndexRouteImport.update({
   path: '/codex/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CodexSpeciesRoute = CodexSpeciesRouteImport.update({
+  id: '/codex/species',
+  path: '/codex/species',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/codex/species': typeof CodexSpeciesRoute
   '/codex': typeof CodexIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/codex/species': typeof CodexSpeciesRoute
   '/codex': typeof CodexIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/codex/species': typeof CodexSpeciesRoute
   '/codex/': typeof CodexIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/codex'
+  fullPaths: '/' | '/codex/species' | '/codex'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/codex'
-  id: '__root__' | '/' | '/codex/'
+  to: '/' | '/codex/species' | '/codex'
+  id: '__root__' | '/' | '/codex/species' | '/codex/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CodexSpeciesRoute: typeof CodexSpeciesRoute
   CodexIndexRoute: typeof CodexIndexRoute
 }
 
@@ -65,11 +75,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CodexIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/codex/species': {
+      id: '/codex/species'
+      path: '/codex/species'
+      fullPath: '/codex/species'
+      preLoaderRoute: typeof CodexSpeciesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CodexSpeciesRoute: CodexSpeciesRoute,
   CodexIndexRoute: CodexIndexRoute,
 }
 export const routeTree = rootRouteImport

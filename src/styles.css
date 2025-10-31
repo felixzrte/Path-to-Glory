@@ -188,7 +188,7 @@ code {
   .font-display {
     font-family: var(--display-family);
     font-weight: var(--display-weight);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.02em;
   }
   
   .font-heading {

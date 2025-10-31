@@ -2,74 +2,75 @@ import { FeatureCard } from "@/components/ui/feature-card"
 import { 
   BookOpen,
   Users,
-  Sword,
+  User,
+  UserCircle,
+  Wrench,
+  Zap,
   Swords,
   Shield,
   Sparkles,
-  TrendingUp,
-  Wrench,
-  Zap
+  TrendingUp
 } from "lucide-react"
 
 const features = [
   {
     icon: BookOpen,
     title: "Core Rules",
-    description: "Complete reference for core mechanics, difficulty numbers, Wrath dice, Glory points, and all fundamental game systems.",
+    description: "",
     href: "/codex/rules"
   },
   {
     icon: Users,
     title: "Factions",
-    description: "Explore the Imperium, Aeldari, Orks, Chaos, and all playable factions with their backgrounds and objectives.",
+    description: "",
     href: "/codex/factions"
   },
   {
-    icon: Sword,
+    icon: User,
     title: "Species",
-    description: "Playable species including humans, Aeldari, Orks, and other xenos with their traits and abilities.",
+    description: "",
     href: "/codex/species"
   },
   {
-    icon: Shield,
+    icon: UserCircle,
     title: "Archetypes",
-    description: "Complete archetype database from Tier 1 to Tier 4, including all character roles and starting abilities.",
+    description: "",
     href: "/codex/archetypes"
   },
   {
     icon: Wrench,
     title: "Attributes & Skills",
-    description: "Full listing of all attributes and skills with descriptions and test mechanics.",
+    description: "",
     href: "/codex/attributes"
   },
   {
     icon: Zap,
     title: "Talents",
-    description: "Searchable talent database with prerequisites, effects, and advancement options.",
+    description: "",
     href: "/codex/talents"
   },
   {
     icon: Swords,
     title: "Combat",
-    description: "Comprehensive combat rules including initiative, actions, attacking, damage, critical hits, and conditions.",
+    description: "",
     href: "/codex/combat"
   },
   {
     icon: Shield,
     title: "Wargear",
-    description: "Weapons, armor, augmetics, tools, and equipment with full stats and traits.",
+    description: "",
     href: "/codex/wargear"
   },
   {
     icon: Sparkles,
     title: "Psychic Powers",
-    description: "Complete compendium of psychic disciplines, powers, and perils of the warp.",
+    description: "",
     href: "/codex/psychic"
   },
   {
     icon: TrendingUp,
     title: "Advancement",
-    description: "Character progression rules including rank increases and ascension packages.",
+    description: "",
     href: "/codex/advancement"
   }
 ]
