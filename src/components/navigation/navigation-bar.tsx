@@ -20,6 +20,7 @@ interface NavigationItem {
 
 const navigationItems: NavigationItem[] = [
   { label: "Codex", href: "/codex" },
+  { label: "Character", href: "/character" },
 ];
 
 export function NavigationBar() {

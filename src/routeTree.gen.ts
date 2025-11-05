@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as CharacterRouteImport } from './routes/character'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CodexIndexRouteImport } from './routes/codex/index'
 import { Route as CodexSpeciesRouteImport } from './routes/codex/species'
 
+const CharacterRoute = CharacterRouteImport.update({
+  id: '/character',
+  path: '/character',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -31,36 +37,47 @@ const CodexSpeciesRoute = CodexSpeciesRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/character': typeof CharacterRoute
   '/codex/species': typeof CodexSpeciesRoute
   '/codex': typeof CodexIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/character': typeof CharacterRoute
   '/codex/species': typeof CodexSpeciesRoute
   '/codex': typeof CodexIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/character': typeof CharacterRoute
   '/codex/species': typeof CodexSpeciesRoute
   '/codex/': typeof CodexIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/codex/species' | '/codex'
+  fullPaths: '/' | '/character' | '/codex/species' | '/codex'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/codex/species' | '/codex'
-  id: '__root__' | '/' | '/codex/species' | '/codex/'
+  to: '/' | '/character' | '/codex/species' | '/codex'
+  id: '__root__' | '/' | '/character' | '/codex/species' | '/codex/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CharacterRoute: typeof CharacterRoute
   CodexSpeciesRoute: typeof CodexSpeciesRoute
   CodexIndexRoute: typeof CodexIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/character': {
+      id: '/character'
+      path: '/character'
+      fullPath: '/character'
+      preLoaderRoute: typeof CharacterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CharacterRoute: CharacterRoute,
   CodexSpeciesRoute: CodexSpeciesRoute,
   CodexIndexRoute: CodexIndexRoute,
 }
