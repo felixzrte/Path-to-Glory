@@ -14,11 +14,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -28,9 +23,9 @@ import {
 } from '@/components/ui/dialog';
 import { ATTRIBUTES, SKILLS, SKILL_NAMES, SKILL_ATTRIBUTES } from '@/types/entity';
 import type { SkillName } from '@/types/entity';
-import { ArrowUp, ChevronDown } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 
-export interface RollResult {
+interface RollResult {
   id: string;
   timestamp: Date;
   skillName: string;
@@ -43,15 +38,10 @@ export interface RollResult {
 interface CharacterSheetProps {
   character: Character;
   onCharacterUpdate: (character: Character) => void;
-  rollHistory: RollResult[];
-  onRollHistoryUpdate: (history: RollResult[]) => void;
 }
 
-export function CharacterSheet({ 
-  character, 
-  rollHistory, 
-  onRollHistoryUpdate 
-}: CharacterSheetProps) {
+export function CharacterSheet({ character }: CharacterSheetProps) {
+  const [rollHistory, setRollHistory] = useState<RollResult[]>([]);
   const [rollDialogOpen, setRollDialogOpen] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<SkillName | null>(null);
   const [dn, setDn] = useState(3);
@@ -89,13 +79,13 @@ export function CharacterSheet({
       result: testResult,
     };
     
-    onRollHistoryUpdate([newRoll, ...rollHistory]);
+    setRollHistory([newRoll, ...rollHistory]);
     setRollDialogOpen(false);
     setEd(0); // Reset ED after roll
   };
 
   const clearHistory = () => {
-    onRollHistoryUpdate([]);
+    setRollHistory([]);
   };
 
   // Get attribute breakdown (for tooltips)
@@ -135,31 +125,31 @@ export function CharacterSheet({
     return 3;
   };
 
-  const species = character.species ? getSpeciesById(character.species) : null;
+  const species = getSpeciesById(character.species);
 
   return (
     <TooltipProvider>
-      <div className="w-full space-y-4">
-        {/* Character Header - D&D Beyond Style with Responsive */}
-        <Card className="border-2">
+      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Character Header - D&D Beyond Style */}
+        <Card className="mb-4 border-2">
           <CardHeader className="pb-4">
-            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+            <div className="flex items-start gap-6">
               {/* Character Portrait */}
               <div className="shrink-0">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg border-2 bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center text-2xl sm:text-3xl shadow-sm">
+                <div className="w-20 h-20 rounded-lg border-2 bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center text-3xl shadow-sm">
                   ⚔️
                 </div>
               </div>
 
               {/* Character Info */}
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate mb-1">{character.name}</h1>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground mb-2">
+                <h1 className="text-2xl font-bold tracking-tight truncate mb-1">{character.name}</h1>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                   <span className="font-medium">{archetype?.name}</span>
                   <span>•</span>
                   <span className="font-medium">{species?.name || character.species}</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground mb-2">
+                <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2">
                   <span>Tier {character.tier}</span>
                   <span>•</span>
                   <span>Rank {calculateRank()}</span>
@@ -183,206 +173,205 @@ export function CharacterSheet({
           </CardHeader>
         </Card>
 
-        {/* Responsive Layout: 1 col mobile, 2 col tablet, 3 col large, 4 col xl */}
-                {/* Responsive Grid Layout: Now 3 columns max (removed dice log - now in sidebar) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Column 1: Attributes + Traits (always together) */}
-          <div className="space-y-4 xl:col-span-1">
-            {/* Attributes */}
-            <Card className="h-fit">
+        {/* 4 Column Layout: Attributes | Traits | Skills | Tabs | Dice Log */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(200px,280px)_minmax(200px,280px)_minmax(200px,280px)_1fr_350px] gap-4">
+          {/* Column 1: Attributes */}
+          <Card className="h-fit">
             <CardHeader className="pb-3 border-b">
               <CardTitle className="text-base font-bold">Attributes</CardTitle>
             </CardHeader>
             <CardContent className="pt-3">
-              <table className="w-full text-sm">
-                <tbody>
-                  {ATTRIBUTES.map((attr) => {
-                    const breakdown = getAttributeBreakdown(attr);
-                    const value = stats[attr];
-                    
-                    return (
-                      <tr key={attr} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <td className="py-1.5 capitalize cursor-help">{attr}</td>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">
-                            <div className="space-y-1 text-xs">
-                              <div className="font-semibold capitalize">{attr}</div>
-                              <Separator className="my-1" />
-                              <div className="flex justify-between gap-4">
-                                <span className="text-muted-foreground">Base:</span>
-                                <span className="font-mono">{breakdown.base}</span>
-                              </div>
-                              {breakdown.bonuses > 0 && (
-                                <div className="flex justify-between gap-4 text-green-600">
-                                  <span>Bonuses:</span>
-                                  <span className="font-mono">+{breakdown.bonuses}</span>
-                                </div>
-                              )}
-                              {breakdown.penalties > 0 && (
-                                <div className="flex justify-between gap-4 text-red-600">
-                                  <span>Penalties:</span>
-                                  <span className="font-mono">-{breakdown.penalties}</span>
-                                </div>
-                              )}
-                              <Separator className="my-1" />
-                              <div className="flex justify-between gap-4 font-bold">
-                                <span>Total:</span>
-                                <span className="font-mono">{breakdown.total}</span>
-                              </div>
+              <div className="space-y-1">
+                {ATTRIBUTES.map((attr) => {
+                  const breakdown = getAttributeBreakdown(attr);
+                  const value = stats[attr];
+                  
+                  return (
+                    <div key={attr} className="flex justify-between items-center py-2 px-3 rounded hover:bg-muted/50 transition-colors">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-sm font-medium capitalize cursor-help underline decoration-dotted decoration-muted-foreground/30">{attr}</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          <div className="space-y-1 text-xs">
+                            <div className="font-semibold capitalize">{attr}</div>
+                            <Separator className="my-1" />
+                            <div className="flex justify-between gap-4">
+                              <span className="text-muted-foreground">Base:</span>
+                              <span className="font-mono">{breakdown.base}</span>
                             </div>
-                          </TooltipContent>
-                        </Tooltip>
-                        <td className="text-right py-1.5">
-                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">
-                            {value}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            {breakdown.bonuses > 0 && (
+                              <div className="flex justify-between gap-4 text-green-600">
+                                <span>Bonuses:</span>
+                                <span className="font-mono">+{breakdown.bonuses}</span>
+                              </div>
+                            )}
+                            {breakdown.penalties > 0 && (
+                              <div className="flex justify-between gap-4 text-red-600">
+                                <span>Penalties:</span>
+                                <span className="font-mono">-{breakdown.penalties}</span>
+                              </div>
+                            )}
+                            <Separator className="my-1" />
+                            <div className="flex justify-between gap-4 font-bold">
+                              <span>Total:</span>
+                              <span className="font-mono">{breakdown.total}</span>
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                      <span className="text-base font-bold tabular-nums">{value}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
 
-          {/* Traits (Derived Stats) */}
+          {/* Column 2: Traits (Derived Stats) */}
           <Card className="h-fit">
             <CardHeader className="pb-3 border-b">
               <CardTitle className="text-base font-bold">Traits</CardTitle>
             </CardHeader>
             <CardContent className="pt-3">
-              <table className="w-full text-sm">
-                <tbody>
-                  <tr className="border-b hover:bg-muted/30 transition-colors">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <td className="py-1.5 cursor-help">Defence</td>
-                      </TooltipTrigger>
-                      <TooltipContent side="right"><div className="text-xs">Initiative - 1</div></TooltipContent>
-                    </Tooltip>
-                    <td className="text-right py-1.5">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">{stats.defence}</span>
-                    </td>
-                  </tr>
-                  <tr className="border-b hover:bg-muted/30 transition-colors">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <td className="py-1.5 cursor-help">Resilience</td>
-                      </TooltipTrigger>
-                      <TooltipContent side="right"><div className="text-xs">Toughness + 1</div></TooltipContent>
-                    </Tooltip>
-                    <td className="text-right py-1.5">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">{stats.resilience}</span>
-                    </td>
-                  </tr>
-                  <tr className="border-b hover:bg-muted/30 transition-colors">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <td className="py-1.5 cursor-help">Determination</td>
-                      </TooltipTrigger>
-                      <TooltipContent side="right"><div className="text-xs">= Toughness</div></TooltipContent>
-                    </Tooltip>
-                    <td className="text-right py-1.5">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">{stats.determination}</span>
-                    </td>
-                  </tr>
-                  <tr className="border-b hover:bg-muted/30 transition-colors">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <td className="py-1.5 cursor-help">Max Wounds</td>
-                      </TooltipTrigger>
-                      <TooltipContent side="right"><div className="text-xs">(2 × Tier) + Toughness</div></TooltipContent>
-                    </Tooltip>
-                    <td className="text-right py-1.5">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">{stats.maxWounds}</span>
-                    </td>
-                  </tr>
-                  <tr className="border-b hover:bg-muted/30 transition-colors">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <td className="py-1.5 cursor-help">Max Shock</td>
-                      </TooltipTrigger>
-                      <TooltipContent side="right"><div className="text-xs">Willpower + Tier</div></TooltipContent>
-                    </Tooltip>
-                    <td className="text-right py-1.5">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">{stats.maxShock}</span>
-                    </td>
-                  </tr>
-                  <tr className="border-b hover:bg-muted/30 transition-colors">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <td className="py-1.5 cursor-help">Speed</td>
-                      </TooltipTrigger>
-                      <TooltipContent side="right"><div className="text-xs">Movement per turn</div></TooltipContent>
-                    </Tooltip>
-                    <td className="text-right py-1.5">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">{stats.speed}</span>
-                    </td>
-                  </tr>
-                  <tr className="border-b hover:bg-muted/30 transition-colors">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <td className="py-1.5 cursor-help">Conviction</td>
-                      </TooltipTrigger>
-                      <TooltipContent side="right"><div className="text-xs">For re-rolls</div></TooltipContent>
-                    </Tooltip>
-                    <td className="text-right py-1.5">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">{stats.conviction}</span>
-                    </td>
-                  </tr>
-                  <tr className="border-b hover:bg-muted/30 transition-colors">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <td className="py-1.5 cursor-help">Resolve</td>
-                      </TooltipTrigger>
-                      <TooltipContent side="right"><div className="text-xs">Passive Willpower</div></TooltipContent>
-                    </Tooltip>
-                    <td className="text-right py-1.5">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">{stats.resolve}</span>
-                    </td>
-                  </tr>
-                  <tr className="border-b hover:bg-muted/30 transition-colors">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <td className="py-1.5 cursor-help">Influence</td>
-                      </TooltipTrigger>
-                      <TooltipContent side="right"><div className="text-xs">Social standing</div></TooltipContent>
-                    </Tooltip>
-                    <td className="text-right py-1.5">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">{stats.influence}</span>
-                    </td>
-                  </tr>
-                  <tr className="border-b hover:bg-muted/30 transition-colors">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <td className="py-1.5 cursor-help">Wealth</td>
-                      </TooltipTrigger>
-                      <TooltipContent side="right"><div className="text-xs">Available resources</div></TooltipContent>
-                    </Tooltip>
-                    <td className="text-right py-1.5">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">{stats.wealth}</span>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-muted/30 transition-colors">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <td className="py-1.5 cursor-help">Passive Awareness</td>
-                      </TooltipTrigger>
-                      <TooltipContent side="right"><div className="text-xs">= Awareness skill</div></TooltipContent>
-                    </Tooltip>
-                    <td className="text-right py-1.5">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">{stats.passiveAwareness}</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div className="space-y-1">
+                <div className="flex justify-between items-center py-2 px-3 rounded hover:bg-muted/50 transition-colors">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm cursor-help underline decoration-dotted decoration-muted-foreground/30">Defence</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <div className="text-xs">Initiative - 1</div>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-base font-bold tabular-nums">{stats.defence}</span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 px-3 rounded hover:bg-muted/50 transition-colors">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm cursor-help underline decoration-dotted decoration-muted-foreground/30">Resilience</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <div className="text-xs">Toughness + 1</div>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-base font-bold tabular-nums">{stats.resilience}</span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 px-3 rounded hover:bg-muted/50 transition-colors">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm cursor-help underline decoration-dotted decoration-muted-foreground/30">Determination</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <div className="text-xs">= Toughness</div>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-base font-bold tabular-nums">{stats.determination}</span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 px-3 rounded hover:bg-muted/50 transition-colors">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm cursor-help underline decoration-dotted decoration-muted-foreground/30">Max Wounds</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <div className="text-xs">(2 × Tier) + Toughness</div>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-base font-bold tabular-nums">{stats.maxWounds}</span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 px-3 rounded hover:bg-muted/50 transition-colors">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm cursor-help underline decoration-dotted decoration-muted-foreground/30">Max Shock</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <div className="text-xs">Willpower + Tier</div>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-base font-bold tabular-nums">{stats.maxShock}</span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 px-3 rounded hover:bg-muted/50 transition-colors">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm cursor-help underline decoration-dotted decoration-muted-foreground/30">Speed</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <div className="text-xs">Movement per turn</div>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-base font-bold tabular-nums">{stats.speed}</span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 px-3 rounded hover:bg-muted/50 transition-colors">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm cursor-help underline decoration-dotted decoration-muted-foreground/30">Conviction</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <div className="text-xs">For re-rolls</div>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-base font-bold tabular-nums">{stats.conviction}</span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 px-3 rounded hover:bg-muted/50 transition-colors">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm cursor-help underline decoration-dotted decoration-muted-foreground/30">Resolve</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <div className="text-xs">Passive Willpower</div>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-base font-bold tabular-nums">{stats.resolve}</span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 px-3 rounded hover:bg-muted/50 transition-colors">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm cursor-help underline decoration-dotted decoration-muted-foreground/30">Influence</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <div className="text-xs">Social standing</div>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-base font-bold tabular-nums">{stats.influence}</span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 px-3 rounded hover:bg-muted/50 transition-colors">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm cursor-help underline decoration-dotted decoration-muted-foreground/30">Wealth</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <div className="text-xs">Available resources</div>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-base font-bold tabular-nums">{stats.wealth}</span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 px-3 rounded hover:bg-muted/50 transition-colors">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm cursor-help underline decoration-dotted decoration-muted-foreground/30">Passive Awareness</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <div className="text-xs">= Awareness skill</div>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-base font-bold tabular-nums">{stats.passiveAwareness}</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Skills - separate column on XL, same column on lg */}
-          <Card className="h-fit xl:hidden">
+          {/* Column 3: Skills */}
+          <Card className="h-fit">
             <CardHeader className="pb-3 border-b">
               <CardTitle className="text-base font-bold">Skills</CardTitle>
             </CardHeader>
@@ -398,7 +387,7 @@ export function CharacterSheet({
                       <div
                         key={skill}
                         className="flex justify-between items-center py-2 px-3 rounded hover:bg-accent/50 transition-colors cursor-pointer"
-                        onClick={() => handleSkillClick(skill)}
+                        onClick={() => handleRollSkill(skill)}
                       >
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -439,7 +428,7 @@ export function CharacterSheet({
                             </div>
                           </TooltipContent>
                         </Tooltip>
-                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">{value}</span>
+                        <span className="text-base font-bold tabular-nums">{value}</span>
                       </div>
                     );
                   })}
@@ -447,85 +436,71 @@ export function CharacterSheet({
               </ScrollArea>
             </CardContent>
           </Card>
+                    const totalDicePool = attributeValue + skillRanks;
+                    const breakdown = getSkillBreakdown(skill);
+
+                    return (
+                      <Tooltip key={skill}>
+                        <TooltipTrigger asChild>
+                          <div
+                            className="flex justify-between items-center py-1.5 px-2 rounded hover:bg-primary/10 cursor-pointer transition-colors border border-transparent hover:border-primary/30"
+                            onClick={() => handleSkillClick(skill)}
+                          >
+                            <span className="text-sm font-medium cursor-help">
+                              {SKILL_NAMES[skill]}
+                            </span>
+                            <span className="text-sm font-bold tabular-nums">{totalDicePool}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="space-y-0.5 text-xs">
+                            <div className="font-semibold">{SKILL_NAMES[skill]}</div>
+                            <Separator className="my-1" />
+                            <div className="flex justify-between gap-4">
+                              <span className="text-muted-foreground">Linked ({linkedAttr.slice(0, 3).toUpperCase()}):</span>
+                              <span className="font-mono">{attributeValue}</span>
+                            </div>
+                            <div className="flex justify-between gap-4">
+                              <span className="text-muted-foreground">Purchased Ranks:</span>
+                              <span className="font-mono">{breakdown.purchased}</span>
+                            </div>
+                            {breakdown.bonuses > 0 && (
+                              <div className="flex justify-between gap-4 text-green-600">
+                                <span>Bonuses:</span>
+                                <span className="font-mono">+{breakdown.bonuses}</span>
+                              </div>
+                            )}
+                            {breakdown.penalties > 0 && (
+                              <div className="flex justify-between gap-4 text-red-600">
+                                <span>Penalties:</span>
+                                <span className="font-mono">-{breakdown.penalties}</span>
+                              </div>
+                            )}
+                            <Separator className="my-1" />
+                            <div className="flex justify-between gap-4 font-semibold">
+                              <span>Total Dice Pool:</span>
+                              <span className="font-mono">{totalDicePool}</span>
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Column 2 (XL only): Skills */}
-          <Card className="h-fit hidden xl:block">
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-base font-bold">Skills</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-3">
-              <ScrollArea className="h-[600px] pr-3">
-                <div className="space-y-1">
-                  {SKILLS.map((skill) => {
-                    const breakdown = getSkillBreakdown(skill);
-                    const value = stats.skills[skill] || 0;
-                    const linkedAttr = SKILL_ATTRIBUTES[skill];
-                    
-                    return (
-                      <div
-                        key={skill}
-                        className="flex justify-between items-center py-2 px-3 rounded hover:bg-accent/50 transition-colors cursor-pointer"
-                        onClick={() => handleSkillClick(skill)}
-                      >
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-sm cursor-help underline decoration-dotted decoration-muted-foreground/30">
-                              {SKILL_NAMES[skill]}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">
-                            <div className="space-y-1 text-xs">
-                              <div className="font-semibold">{SKILL_NAMES[skill]}</div>
-                              <Separator className="my-1" />
-                              <div className="flex justify-between gap-4">
-                                <span className="text-muted-foreground">Linked Attribute:</span>
-                                <span className="font-mono capitalize">{linkedAttr}</span>
-                              </div>
-                              <div className="flex justify-between gap-4">
-                                <span className="text-muted-foreground">Purchased Ranks:</span>
-                                <span className="font-mono">{breakdown.purchased}</span>
-                              </div>
-                              {breakdown.bonuses > 0 && (
-                                <div className="flex justify-between gap-4 text-green-600">
-                                  <span>Bonuses:</span>
-                                  <span className="font-mono">+{breakdown.bonuses}</span>
-                                </div>
-                              )}
-                              {breakdown.penalties > 0 && (
-                                <div className="flex justify-between gap-4 text-red-600">
-                                  <span>Penalties:</span>
-                                  <span className="font-mono">-{breakdown.penalties}</span>
-                                </div>
-                              )}
-                              <Separator className="my-1" />
-                              <div className="flex justify-between gap-4 font-bold">
-                                <span>Total:</span>
-                                <span className="font-mono">{breakdown.total}</span>
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-2">Click to roll</div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">{value}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-
-          {/* Column 3 (sm+): Tabbed Content */}
-          <div className="sm:col-span-1 lg:col-span-1 xl:col-span-1">
+          {/* Middle Column: Tabbed Content */}
+          <div>
             <Card className="h-full">
               <Tabs defaultValue="abilities" className="h-full flex flex-col">
                 <CardHeader className="pb-2 border-b shrink-0">
-                  <TabsList className="w-full grid grid-cols-4 h-auto">
-                    <TabsTrigger value="weapons" className="text-xs sm:text-sm px-2 truncate">Weapons</TabsTrigger>
-                    <TabsTrigger value="wargear" className="text-xs sm:text-sm px-2 truncate">Wargear</TabsTrigger>
-                    <TabsTrigger value="abilities" className="text-xs sm:text-sm px-2 truncate">Abilities</TabsTrigger>
-                    <TabsTrigger value="description" className="text-xs sm:text-sm px-2 truncate">Info</TabsTrigger>
+                  <TabsList className="w-full justify-start grid grid-cols-4">
+                    <TabsTrigger value="weapons" className="text-xs">Weapons</TabsTrigger>
+                    <TabsTrigger value="wargear" className="text-xs">Wargear</TabsTrigger>
+                    <TabsTrigger value="abilities" className="text-xs">Abilities</TabsTrigger>
+                    <TabsTrigger value="description" className="text-xs">Description</TabsTrigger>
                   </TabsList>
                 </CardHeader>
                 
@@ -668,6 +643,125 @@ export function CharacterSheet({
                   </TabsContent>
                 </CardContent>
               </Tabs>
+            </Card>
+          </div>
+
+          {/* Right Column: Dice Log */}
+          <div>
+            <Card className="h-[calc(100vh-200px)] flex flex-col">
+              <CardHeader className="pb-2 border-b shrink-0">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">Dice Log</CardTitle>
+                  {rollHistory.length > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearHistory} className="h-7 text-xs">
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              
+              <CardContent className="p-0 flex-1 overflow-hidden">
+                <ScrollArea className="h-full">
+                  <div className="p-3 space-y-2">
+                    {rollHistory.length === 0 ? (
+                      <div className="text-center text-muted-foreground py-12">
+                        <p className="text-sm">Click any skill to roll</p>
+                        <p className="text-xs mt-1">Rolls appear here</p>
+                      </div>
+                    ) : (
+                      rollHistory.map((roll) => (
+                        <div
+                          key={roll.id}
+                          className="border rounded-lg p-2.5 bg-card hover:bg-muted/50 transition-colors"
+                        >
+                          {/* Roll Header */}
+                          <div className="flex items-start justify-between mb-1.5">
+                            <div>
+                              <div className="font-semibold text-xs">{roll.skillName}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {roll.linkedAttr.slice(0, 3).toUpperCase()} • {roll.dicePool}d vs DN{roll.dn}
+                              </div>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {roll.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+
+                          {/* Result Badge */}
+                          <div className="mb-1.5">
+                            {roll.result.success ? (
+                              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-xs text-green-700 font-medium">
+                                ✓ {roll.result.icons} icons
+                              </div>
+                            ) : (
+                              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-700 font-medium">
+                                ✗ {roll.result.icons} icons
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Dice Visual */}
+                          <div className="flex flex-wrap gap-1">
+                            {roll.result.rolls?.slice(0, -1).map((dieRoll: number, idx: number) => (
+                              <div
+                                key={idx}
+                                className={`w-7 h-7 flex items-center justify-center rounded border text-xs font-bold ${
+                                  dieRoll === 6
+                                    ? 'bg-yellow-100 border-yellow-400 text-yellow-900'
+                                    : dieRoll >= roll.dn
+                                    ? 'bg-green-100 border-green-400 text-green-900'
+                                    : 'bg-muted border-border text-muted-foreground'
+                                }`}
+                              >
+                                {dieRoll}
+                              </div>
+                            ))}
+                            {roll.result.rolls && roll.result.rolls.length > 0 && (() => {
+                              const wrathRoll = roll.result.rolls[roll.result.rolls.length - 1];
+                              return (
+                                <div
+                                  className={`w-7 h-7 flex items-center justify-center rounded border text-xs font-bold ${
+                                    wrathRoll === 6
+                                      ? 'bg-purple-100 border-purple-400 text-purple-900'
+                                      : wrathRoll === 1
+                                      ? 'bg-red-100 border-red-400 text-red-900'
+                                      : wrathRoll >= roll.dn
+                                      ? 'bg-green-100 border-green-400 text-green-900'
+                                      : 'bg-muted border-border text-muted-foreground'
+                                  }`}
+                                >
+                                  {wrathRoll === 6 ? '⚡' : wrathRoll === 1 ? '☠' : wrathRoll}
+                                </div>
+                              );
+                            })()}
+                          </div>
+
+                          {/* Special Results */}
+                          {(roll.result.glory || roll.result.complication || roll.result.shift > 0) && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {roll.result.glory && (
+                                <div className="text-xs px-1.5 py-0.5 bg-purple-500/10 border border-purple-500/20 rounded text-purple-700 font-medium">
+                                  ⚡ Glory
+                                </div>
+                              )}
+                              {roll.result.complication && (
+                                <div className="text-xs px-1.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-red-700 font-medium">
+                                  ☠ Complication
+                                </div>
+                              )}
+                              {roll.result.shift > 0 && (
+                                <div className="text-xs px-1.5 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-green-700 font-medium">
+                                  +{roll.result.shift} Shift
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
             </Card>
           </div>
         </div>

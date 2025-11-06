@@ -190,12 +190,12 @@ code {
     font-weight: var(--display-weight);
     letter-spacing: 0.02em;
   }
-  
+
   .font-heading {
     font-family: var(--heading-family);
     font-weight: var(--heading-weight);
   }
-  
+
   .font-text {
     font-family: var(--text-family);
     font-weight: var(--text-weight);

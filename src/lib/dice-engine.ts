@@ -70,25 +70,54 @@ export function calculateDerivedStats(stats: {
   intellect: number;
   toughness: number;
   tier: number;
+  fellowship: number;
+  awarenessSkill?: number; // Optional for passive awareness
 }): {
   defence: number;
   determination: number;
-  speed: number;
   passiveAwareness: number;
   resolve: number;
   conviction: number;
   maxWounds: number;
   maxShock: number;
+  resilience: number;
+  influence: number;
+  wealth: number;
 } {
+  const awarenessSkill = stats.awarenessSkill || 0;
+  // Passive Awareness is based on total dice pool (Intellect + Awareness skill)
+  const awarenessDicePool = stats.intellect + awarenessSkill;
+  
   return {
-    defence: 1 + getAttributeModifier(stats.initiative),
-    determination: 1 + getAttributeModifier(stats.willpower),
-    speed: Math.max(6, 6 + getAttributeModifier(stats.agility)),
-    passiveAwareness: getAttributeModifier(stats.intellect),
-    resolve: Math.max(1, getAttributeModifier(stats.willpower)),
+    // Defence = Initiative - 1
+    defence: Math.max(1, stats.initiative - 1),
+    
+    // Determination = Toughness
+    determination: stats.toughness,
+    
+    // Passive Awareness = Half of Awareness skill TOTAL (Intellect + Awareness), rounded up
+    passiveAwareness: Math.ceil(awarenessDicePool / 2),
+    
+    // Resolve = Willpower - 1 (minimum 1)
+    resolve: Math.max(1, stats.willpower - 1),
+    
+    // Conviction = Willpower
     conviction: stats.willpower,
-    maxWounds: stats.tier + stats.toughness,
-    maxShock: stats.tier + stats.willpower,
+    
+    // Max Wounds = (2 × Tier) + Toughness
+    maxWounds: (2 * stats.tier) + stats.toughness,
+    
+    // Max Shock = Willpower + Tier
+    maxShock: stats.willpower + stats.tier,
+    
+    // Resilience = Toughness + 1 (base, before armor)
+    resilience: stats.toughness + 1,
+    
+    // Influence = Fellowship - 1
+    influence: Math.max(1, stats.fellowship - 1),
+    
+    // Wealth = Tier
+    wealth: stats.tier,
   };
 }
 

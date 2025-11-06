@@ -15,32 +15,57 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ATTRIBUTES, SKILLS, SKILL_NAMES, SKILL_ATTRIBUTES } from '@/types/entity';
 import type { AttributeName, SkillName } from '@/types/entity';
+import type { CharacterCreationSettings } from './CharacterSettings';
 
 interface CharacterCreatorProps {
+  settings: CharacterCreationSettings;
   onCharacterCreated: (character: Character) => void;
+  onBack: () => void;
 }
 
-type CreationMode = 'select' | 'regular' | 'advanced';
-type Step = 'basic' | 'species' | 'archetype' | 'keywords' | 'stats' | 'review';
+type Step = 'species' | 'archetype' | 'stats' | 'talents' | 'wargear' | 'psychic' | 'background';
 
+// Incremental costs to increase to each rating
 const ATTRIBUTE_COSTS: Record<number, number> = {
-  2: 4, 3: 10, 4: 20, 5: 35, 6: 55, 7: 80, 8: 110
+  2: 4,    // 1→2 costs 4 XP
+  3: 6,    // 2→3 costs 6 XP
+  4: 10,   // 3→4 costs 10 XP
+  5: 15,   // 4→5 costs 15 XP
+  6: 20,   // 5→6 costs 20 XP
+  7: 25,   // 6→7 costs 25 XP
+  8: 30,   // 7→8 costs 30 XP
+  9: 35,   // 8→9 costs 35 XP
+  10: 40,  // 9→10 costs 40 XP
+  11: 45,  // 10→11 costs 45 XP
+  12: 50,  // 11→12 costs 50 XP
 };
 
 const SKILL_COSTS: Record<number, number> = {
-  1: 2, 2: 6, 3: 12, 4: 20, 5: 30
+  1: 2,    // 0→1 costs 2 XP
+  2: 4,    // 1→2 costs 4 XP
+  3: 6,    // 2→3 costs 6 XP
+  4: 8,    // 3→4 costs 8 XP
+  5: 10,   // 4→5 costs 10 XP
+  6: 12,   // 5→6 costs 12 XP
+  7: 14,   // 6→7 costs 14 XP
+  8: 16,   // 7→8 costs 16 XP
 };
 
-export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) {
-  const [creationMode, setCreationMode] = useState<CreationMode>('select');
-  const [step, setStep] = useState<Step>('basic');
+export function CharacterCreator({ settings, onCharacterCreated, onBack }: CharacterCreatorProps) {
+  const creationMode = settings.creationMode;
+  
+  // Start at appropriate step based on mode
+  // Advanced: species first, Regular: archetype first
+  const [step, setStep] = useState<Step>(creationMode === 'advanced' ? 'species' : 'archetype');
   
   // Character creation state
-  const [name, setName] = useState('');
-  const [tier, setTier] = useState(1);
+  const tier = settings.tier;
   const [selectedSpecies, setSelectedSpecies] = useState<Species | null>(null);
   const [selectedArchetype, setSelectedArchetype] = useState<Archetype | null>(null);
   const [selectedKeywords, setSelectedKeywords] = useState<Record<string, string>>({});
+  
+  // Wargear selection state
+  const [selectedWargear, setSelectedWargear] = useState<string[]>([]);
   
   // Attribute purchases (stores the TARGET value, not bonus)
   const [attributePurchases, setAttributePurchases] = useState<Record<AttributeName, number>>({
@@ -80,21 +105,15 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
     if (selectedArchetype) {
       const newAttributePurchases = { ...attributePurchases };
       ATTRIBUTES.forEach((attr) => {
-        const baseValue = 1;
-        const archetypeBonus = selectedArchetype.attributeBonuses?.[attr] || 0;
-        const finalBase = baseValue + archetypeBonus;
-        // Set the purchase target to the base value (including archetype bonus)
-        newAttributePurchases[attr] = finalBase;
+        const bonus = selectedArchetype.attributeBonuses?.[attr] || 0;
+        // If archetype provides a value, use it directly (not 1 + bonus)
+        // Otherwise default to 1
+        newAttributePurchases[attr] = bonus > 0 ? bonus : 1;
       });
       setAttributePurchases(newAttributePurchases);
-
-      // Also initialize skill purchases to include archetype bonuses
-      const newSkillPurchases = { ...skillPurchases };
-      SKILLS.forEach((skill) => {
-        const archetypeBonus = selectedArchetype.skillBonuses?.[skill] || 0;
-        newSkillPurchases[skill] = archetypeBonus;
-      });
-      setSkillPurchases(newSkillPurchases);
+      
+      // Skills start at 0 purchased (archetype bonuses are added separately in display)
+      // Don't reset skills here - keep any existing purchases
     }
   }, [selectedArchetype?.id]); // Only trigger when archetype changes
 
@@ -106,31 +125,29 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
       spent += selectedSpecies.xpCost;
     }
     
-    // Archetype cost
-    if (selectedArchetype) {
+    // Archetype cost (only if selected in advanced mode)
+    if (selectedArchetype && creationMode === 'regular') {
       spent += selectedArchetype.cost;
     }
     
     // Attribute costs
     ATTRIBUTES.forEach((attr) => {
-      const baseValue = 1;
       const archetypeBonus = selectedArchetype?.attributeBonuses?.[attr] || 0;
-      const finalBase = baseValue + archetypeBonus;
+      const startingValue = archetypeBonus > 0 ? archetypeBonus : 1; // Starting value is the archetype bonus or 1
       const targetValue = attributePurchases[attr];
       
-      // Calculate cost from finalBase to targetValue
-      for (let i = finalBase + 1; i <= targetValue; i++) {
+      // Calculate cost from startingValue to targetValue
+      for (let i = startingValue + 1; i <= targetValue; i++) {
         spent += ATTRIBUTE_COSTS[i] || 0;
       }
     });
     
     // Skill costs
     SKILLS.forEach((skill) => {
-      const archetypeBonus = selectedArchetype?.skillBonuses?.[skill] || 0;
-      const purchasedRanks = skillPurchases[skill];
+      const purchasedRanks = skillPurchases[skill]; // This is just purchased, not including archetype
       
-      // Calculate cost from archetypeBonus to purchasedRanks
-      for (let i = archetypeBonus + 1; i <= purchasedRanks; i++) {
+      // Calculate cost for each purchased rank
+      for (let i = 1; i <= purchasedRanks; i++) {
         spent += SKILL_COSTS[i] || 0;
       }
     });
@@ -144,159 +161,20 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
       case 2: return 200;
       case 3: return 300;
       case 4: return 400;
+      case 5: return 500;
       default: return 100;
     }
   };
 
-  const xpTotal = getTierXP(tier);
+  const xpTotal = getTierXP(tier) + settings.additionalXP + (creationMode === 'advanced' ? tier * 10 : 0);
   const xpSpent = calculateXPSpent();
   const xpRemaining = xpTotal - xpSpent;
 
   // Mode Selection Screen
-  const renderModeSelection = () => (
-    <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>Character Creation</CardTitle>
-        <CardDescription>Choose your creation method</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Regular Character Creation */}
-          <Card 
-            className="cursor-pointer hover:border-primary transition-colors"
-            onClick={() => {
-              setCreationMode('regular');
-              setStep('archetype');
-            }}
-          >
-            <CardHeader>
-              <CardTitle className="text-xl">Regular Character Creation</CardTitle>
-              <CardDescription>Quick archetype-based creation</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary"></div>
-                  <span>Choose an archetype</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary"></div>
-                  <span>Species locked by archetype</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary"></div>
-                  <span>Keywords auto-selected</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary"></div>
-                  <span>Spend XP on attributes & skills</span>
-                </div>
-              </div>
-              <div className="pt-2">
-                <Badge variant="outline">Recommended</Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Advanced Character Creation */}
-          <Card 
-            className="cursor-pointer hover:border-primary transition-colors"
-            onClick={() => {
-              setCreationMode('advanced');
-              setStep('basic');
-            }}
-          >
-            <CardHeader>
-              <CardTitle className="text-xl">Advanced Character Creation</CardTitle>
-              <CardDescription>Full customization control</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary"></div>
-                  <span>Name and tier selection</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary"></div>
-                  <span>Choose species independently</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary"></div>
-                  <span>Select archetype (filtered by species)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary"></div>
-                  <span>Customize keywords</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary"></div>
-                  <span>Full XP control</span>
-                </div>
-              </div>
-              <div className="pt-2">
-                <Badge variant="outline">For experienced players</Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </CardContent>
-    </Card>
-  );
+  // Step 1: Species Selection (Advanced mode only)
 
   // Step 1: Basic Info
-  const renderBasicStep = () => (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Basic Information</CardTitle>
-        <CardDescription>Start by naming your character and choosing their tier</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium mb-2">Character Name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-            placeholder="Enter character name"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Tier (Starting XP)</label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[1, 2, 3, 4].map((t) => (
-              <Button
-                key={t}
-                variant={tier === t ? 'default' : 'outline'}
-                onClick={() => setTier(t)}
-                className="flex flex-col h-auto py-4"
-              >
-                <span className="text-lg font-bold">Tier {t}</span>
-                <span className="text-xs">{getTierXP(t)} XP</span>
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <Button
-          onClick={() => {
-            if (creationMode === 'regular') {
-              setStep('archetype');
-            } else {
-              setStep('species');
-            }
-          }}
-          disabled={!name}
-          className="w-full"
-        >
-          {creationMode === 'regular' ? 'Continue to Archetype' : 'Continue to Species Selection'}
-        </Button>
-      </CardContent>
-    </Card>
-  );
-
-  // Step 2: Species Selection
+  // Step 1: Species Selection (Advanced mode only)
   const renderSpeciesStep = () => (
     <Card className="max-w-4xl mx-auto">
       <CardHeader>
@@ -332,15 +210,15 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
         </div>
 
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => setStep('basic')} className="flex-1">
-            Back
+          <Button variant="outline" onClick={onBack} className="flex-1">
+            Back to Settings
           </Button>
           <Button
-            onClick={() => setStep('archetype')}
+            onClick={() => setStep('stats')}
             disabled={!selectedSpecies}
             className="flex-1"
           >
-            Continue to Archetype
+            Continue to Stats
           </Button>
         </div>
       </CardContent>
@@ -460,122 +338,28 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
           <div className="flex gap-3">
             <Button 
               variant="outline" 
-              onClick={() => {
-                if (creationMode === 'regular') {
-                  setCreationMode('select');
-                  setStep('basic');
-                } else {
-                  setStep('species');
-                }
-              }} 
+              onClick={onBack}
               className="flex-1"
             >
-              Back
+              Back to Settings
             </Button>
             <Button
               onClick={() => {
-                if (creationMode === 'regular') {
-                  // Auto-select first keyword choice or skip if none
-                  if (selectedArchetype) {
-                    const keywordChoices = selectedArchetype.keywordChoices || [];
-                    const autoKeywords: Record<string, string> = {};
-                    keywordChoices.forEach((choice) => {
-                      const kwDef = resolveKeywordChoice(choice.bracketedKeywordId);
-                      if (kwDef && kwDef.examples && kwDef.examples.length > 0) {
-                        autoKeywords[choice.bracketedKeywordId] = kwDef.examples[0];
-                      }
-                    });
-                    setSelectedKeywords(autoKeywords);
-                  }
-                  setStep('stats');
-                } else {
-                  setStep('keywords');
+                // Auto-select first keyword choice
+                if (selectedArchetype) {
+                  const keywordChoices = selectedArchetype.keywordChoices || [];
+                  const autoKeywords: Record<string, string> = {};
+                  keywordChoices.forEach((choice) => {
+                    const kwDef = resolveKeywordChoice(choice.bracketedKeywordId);
+                    if (kwDef && kwDef.examples && kwDef.examples.length > 0) {
+                      autoKeywords[choice.bracketedKeywordId] = kwDef.examples[0];
+                    }
+                  });
+                  setSelectedKeywords(autoKeywords);
                 }
+                setStep('stats');
               }}
               disabled={!selectedArchetype}
-              className="flex-1"
-            >
-              {creationMode === 'regular' ? 'Continue to Stats' : 'Continue to Keywords'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  // Step 4: Keywords
-  const renderKeywordsStep = () => {
-    if (!selectedArchetype) return null;
-
-    const keywordChoices = selectedArchetype.keywordChoices || [];
-
-    return (
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle>Choose Keywords</CardTitle>
-          <CardDescription>
-            Select keywords that define your character's affiliations
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Fixed Keywords */}
-          <div>
-            <h3 className="font-semibold mb-2">Fixed Keywords</h3>
-            <div className="flex flex-wrap gap-2">
-              {selectedArchetype.keywords.map((kw) => (
-                <Badge key={kw} variant="secondary">{kw}</Badge>
-              ))}
-            </div>
-          </div>
-
-          {/* Keyword Choices */}
-          {keywordChoices.length > 0 && (
-            <>
-              <Separator />
-              {keywordChoices.map((choice) => {
-                const kwDef = resolveKeywordChoice(choice.bracketedKeywordId);
-                if (!kwDef) return null;
-
-                return (
-                  <div key={choice.bracketedKeywordId}>
-                    <label className="block text-sm font-medium mb-2">
-                      {kwDef.name} {choice.required && <span className="text-red-500">*</span>}
-                    </label>
-                    <p className="text-sm text-muted-foreground mb-3">{kwDef.description}</p>
-                    <select
-                      value={selectedKeywords[choice.bracketedKeywordId] || ''}
-                      onChange={(e) =>
-                        setSelectedKeywords({
-                          ...selectedKeywords,
-                          [choice.bracketedKeywordId]: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="">Select {kwDef.name}</option>
-                      {kwDef.examples.map((example) => (
-                        <option key={example} value={example}>
-                          {example}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                );
-              })}
-            </>
-          )}
-
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setStep('archetype')} className="flex-1">
-              Back
-            </Button>
-            <Button
-              onClick={() => setStep('stats')}
-              disabled={
-                keywordChoices.some(
-                  (choice) => choice.required && !selectedKeywords[choice.bracketedKeywordId]
-                )
-              }
               className="flex-1"
             >
               Continue to Stats
@@ -586,7 +370,8 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
     );
   };
 
-  // Step 5: Attributes & Skills Combined
+  // Step 4: Keywords
+  // Step 3: Attributes & Skills Combined
   const renderStatsStep = () => {
     if (!selectedArchetype) return null;
 
@@ -610,9 +395,8 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
             <h3 className="text-lg font-semibold mb-3">Attributes</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {ATTRIBUTES.map((attr) => {
-                const baseValue = 1;
                 const archetypeBonus = selectedArchetype.attributeBonuses?.[attr] || 0;
-                const currentBase = baseValue + archetypeBonus;
+                const startingValue = archetypeBonus > 0 ? archetypeBonus : 1; // Starting value from archetype or default 1
                 const targetValue = attributePurchases[attr];
                 const nextCost = ATTRIBUTE_COSTS[targetValue + 1] || 0;
 
@@ -623,7 +407,7 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
                         <div>
                           <div className="font-semibold capitalize">{attr}</div>
                           <div className="text-xs text-muted-foreground">
-                            Base: {currentBase}
+                            Base: {startingValue}
                           </div>
                         </div>
                         <div className="text-2xl font-bold">{targetValue}</div>
@@ -634,14 +418,14 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            if (targetValue > currentBase) {
+                            if (targetValue > startingValue) {
                               setAttributePurchases({
                                 ...attributePurchases,
                                 [attr]: targetValue - 1,
                               });
                             }
                           }}
-                          disabled={targetValue <= currentBase}
+                          disabled={targetValue <= startingValue}
                         >
                           −
                         </Button>
@@ -677,10 +461,22 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
             <h3 className="text-lg font-semibold mb-3">Skills</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
               {SKILLS.map((skill) => {
+                // Skip Psychic Mastery if character doesn't have PSYKER keyword
+                if (skill === 'psychicMastery') {
+                  const isPsyker = selectedArchetype.keywords.some(kw => 
+                    kw.toUpperCase() === 'PSYKER'
+                  );
+                  if (!isPsyker) return null;
+                }
+
                 const archetypeBonus = selectedArchetype.skillBonuses?.[skill] || 0;
-                const currentRanks = skillPurchases[skill];
-                const nextCost = SKILL_COSTS[currentRanks + 1] || 0;
+                const purchasedRanks = skillPurchases[skill];
+                const totalRanks = archetypeBonus + purchasedRanks;
+                const nextCost = SKILL_COSTS[purchasedRanks + 1] || 0;
                 const linkedAttr = SKILL_ATTRIBUTES[skill];
+                
+                // Get the current attribute value for this skill
+                const linkedAttrValue = attributePurchases[linkedAttr];
 
                 return (
                   <Card key={skill} className="p-3">
@@ -688,10 +484,10 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
                       <div className="flex-1">
                         <div className="font-semibold text-sm">{SKILL_NAMES[skill]}</div>
                         <div className="text-xs text-muted-foreground">
-                          ({linkedAttr.slice(0, 3)}) Base: {archetypeBonus}
+                          Base ({linkedAttr.slice(0, 3).toUpperCase()}): {linkedAttrValue}
                         </div>
                       </div>
-                      <div className="text-xl font-bold">{currentRanks}</div>
+                      <div className="text-xl font-bold">{totalRanks}</div>
                     </div>
                     
                     <div className="flex gap-2">
@@ -699,14 +495,14 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          if (currentRanks > archetypeBonus) {
+                          if (purchasedRanks > 0) {
                             setSkillPurchases({
                               ...skillPurchases,
-                              [skill]: currentRanks - 1,
+                              [skill]: purchasedRanks - 1,
                             });
                           }
                         }}
-                        disabled={currentRanks <= archetypeBonus}
+                        disabled={purchasedRanks <= 0}
                       >
                         −
                       </Button>
@@ -714,15 +510,15 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const cost = SKILL_COSTS[currentRanks + 1];
-                          if (cost && xpRemaining >= cost && currentRanks < 5) {
+                          const cost = SKILL_COSTS[purchasedRanks + 1];
+                          if (cost && xpRemaining >= cost && purchasedRanks < 5) {
                             setSkillPurchases({
                               ...skillPurchases,
-                              [skill]: currentRanks + 1,
+                              [skill]: purchasedRanks + 1,
                             });
                           }
                         }}
-                        disabled={currentRanks >= 5 || xpRemaining < nextCost}
+                        disabled={purchasedRanks >= 5 || xpRemaining < nextCost}
                         className="flex-1"
                       >
                         + ({nextCost} XP)
@@ -732,14 +528,12 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
                 );
               })}
             </div>
-          </div>
-
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setStep('keywords')} className="flex-1">
+          </div>          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setStep(creationMode === 'advanced' ? 'species' : 'archetype')} className="flex-1">
               Back
             </Button>
-            <Button onClick={() => setStep('review')} className="flex-1">
-              Review Character
+            <Button onClick={() => setStep('talents')} className="flex-1">
+              Continue to Talents
             </Button>
           </div>
         </CardContent>
@@ -747,52 +541,240 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
     );
   };
 
-  // Step 6: Review & Create
-  const renderReviewStep = () => {
-    if (!selectedSpecies || !selectedArchetype) return null;
+  // Step: Wargear Selection
+  const renderWargearStep = () => {
+    if (!selectedArchetype) return null;
 
+    const wargear = selectedArchetype.wargear || [];
+
+    return (
+      <Card className="max-w-4xl mx-auto">
+        <CardHeader>
+          <CardTitle>Select Wargear</CardTitle>
+          <CardDescription>Choose your starting equipment from your archetype</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {wargear.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No wargear options available for this archetype.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {wargear.map((option, idx) => {
+                if (option.type === 'specific' && option.items) {
+                  return (
+                    <Card key={idx} className="border-2 border-primary/20">
+                      <CardHeader>
+                        <CardTitle className="text-base">Starting Equipment</CardTitle>
+                        <CardDescription>You receive all of these items</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {option.items.map((item, itemIdx) => (
+                            <li key={itemIdx} className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-primary" />
+                              <span className="font-medium">{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  );
+                }
+
+                if (option.type === 'choice' && option.items) {
+                  const count = option.count || 1;
+                  return (
+                    <Card key={idx} className="border-2">
+                      <CardHeader>
+                        <CardTitle className="text-base">Choose {count} {count === 1 ? 'Item' : 'Items'}</CardTitle>
+                        <CardDescription>Select from the following options</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {option.items.map((item, itemIdx) => {
+                            const isSelected = selectedWargear.includes(`${idx}-${item}`);
+                            return (
+                              <Button
+                                key={itemIdx}
+                                variant={isSelected ? 'default' : 'outline'}
+                                onClick={() => {
+                                  const key = `${idx}-${item}`;
+                                  if (isSelected) {
+                                    setSelectedWargear(selectedWargear.filter(w => w !== key));
+                                  } else {
+                                    // Count how many from this option are selected
+                                    const currentCount = selectedWargear.filter(w => w.startsWith(`${idx}-`)).length;
+                                    if (currentCount < count) {
+                                      setSelectedWargear([...selectedWargear, key]);
+                                    }
+                                  }
+                                }}
+                                className="justify-start h-auto py-3"
+                              >
+                                {item}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                }
+
+                if (option.type === 'any') {
+                  return (
+                    <Card key={idx} className="border-2 border-dashed">
+                      <CardHeader>
+                        <CardTitle className="text-base">Any Wargear</CardTitle>
+                        <CardDescription>
+                          You may choose any wargear that fits the constraints
+                          {option.constraints?.maxValue && ` (Max Value: ${option.constraints.maxValue})`}
+                          {option.constraints?.maxRarity && ` (Max Rarity: ${option.constraints.maxRarity})`}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground italic">
+                          Custom wargear selection coming soon...
+                        </p>
+                      </CardContent>
+                    </Card>
+                  );
+                }
+
+                return null;
+              })}
+            </div>
+          )}
+
+          <Separator />
+
+          {/* Summary of selected wargear */}
+          <div>
+            <h3 className="font-semibold mb-2">Your Wargear</h3>
+            <div className="bg-muted p-4 rounded-lg space-y-2">
+              {wargear.map((option, idx) => {
+                if (option.type === 'specific' && option.items) {
+                  return option.items.map((item, itemIdx) => (
+                    <div key={`${idx}-${itemIdx}`} className="text-sm">✓ {item}</div>
+                  ));
+                }
+                return null;
+              })}
+              {selectedWargear.map((key) => {
+                const item = key.split('-').slice(1).join('-');
+                return <div key={key} className="text-sm">✓ {item}</div>;
+              })}
+              {wargear.length === 0 && selectedWargear.length === 0 && (
+                <div className="text-sm text-muted-foreground">No wargear selected yet</div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setStep('talents')} className="flex-1">
+              Back to Talents
+            </Button>
+            <Button onClick={() => setStep('psychic')} className="flex-1">
+              Continue to Psychic Powers
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Main render with stepper
+  return (
+    <div className="space-y-6">
+      {/* Step indicator */}
+      <div className="flex items-center justify-center gap-2 text-sm flex-wrap">
+        {(creationMode === 'advanced' ? [
+            { key: 'species', label: 'Species' },
+            { key: 'stats', label: 'Stats' },
+            { key: 'talents', label: 'Talents' },
+            { key: 'wargear', label: 'Wargear' },
+            { key: 'psychic', label: 'Psychic' },
+            { key: 'background', label: 'Background' },
+          ] : [
+            { key: 'archetype', label: 'Archetype' },
+            { key: 'stats', label: 'Stats' },
+            { key: 'talents', label: 'Talents' },
+            { key: 'wargear', label: 'Wargear' },
+            { key: 'psychic', label: 'Psychic' },
+            { key: 'background', label: 'Background' },
+          ]).map((s, idx, arr) => (
+          <div key={s.key} className="flex items-center">
+            <div
+              className={`px-3 py-1 rounded-full ${
+                step === s.key
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {idx + 1}. {s.label}
+            </div>
+            {idx < arr.length - 1 && <div className="w-8 h-px bg-border mx-1" />}
+          </div>
+        ))}
+      </div>
+
+      {/* Step content */}
+      <div>
+        {step === 'species' && creationMode === 'advanced' && renderSpeciesStep()}
+        {step === 'archetype' && creationMode === 'regular' && renderArchetypeStep()}
+        {step === 'stats' && renderStatsStep()}
+        {step === 'talents' && <PlaceholderStep title="Talents" nextStep="wargear" onContinue={setStep} />}
+        {step === 'wargear' && renderWargearStep()}
+        {step === 'psychic' && <PlaceholderStep title="Psychic Powers" nextStep="background" onContinue={setStep} />}
+        {step === 'background' && renderBackgroundStep()}
+      </div>
+    </div>
+  );
+
+  // Background step - finalizes and creates the character
+  function renderBackgroundStep() {
     const handleCreate = () => {
-      // For regular mode, use archetype name as default if no name provided
-      const characterName = name || `${selectedArchetype.name}`;
+      if (!selectedSpecies) return;
       
-      const newChar = createEmptyCharacter(characterName, tier);
+      let newChar = createEmptyCharacter(settings.characterName, settings.tier);
       newChar.species = selectedSpecies.id;
-      newChar.archetype = selectedArchetype.id;
+      if (selectedArchetype) {
+        newChar.archetype = selectedArchetype.id;
+      }
       newChar.keywords = [
-        ...selectedArchetype.keywords,
+        ...(selectedArchetype?.keywords || []),
         ...Object.values(selectedKeywords),
       ] as KeywordId[];
       newChar.xpSpent = xpSpent;
       newChar.xpAvailable = xpRemaining;
 
-      // Add attribute properties
+      // Add attribute properties - ALWAYS save all attributes
       ATTRIBUTES.forEach((attr) => {
         const finalValue = attributePurchases[attr];
-        const archetypeBonus = selectedArchetype.attributeBonuses?.[attr] || 0;
         
-        // Save property if value differs from base (1) OR if archetype gives bonus
-        if (finalValue > 1 || archetypeBonus > 0) {
-          const propId = `attr-${attr}`;
-          const prop: Property = {
-            id: propId,
-            parent: newChar.rootPropertyId,
-            type: 'attribute',
-            name: `${attr} (Character Creation)`,
-            enabled: true,
-            order: 0,
-            baseValue: finalValue,
-          };
-          addProperty(newChar, prop);
-        }
+        const propId = `attr-${attr}`;
+        const prop: Property = {
+          id: propId,
+          parent: newChar.rootPropertyId,
+          type: 'attribute',
+          name: `${attr} (Character Creation)`,
+          enabled: true,
+          order: 0,
+          baseValue: finalValue,
+        };
+        // IMPORTANT: addProperty returns a new character - we must capture it!
+        newChar = addProperty(newChar, prop);
       });
 
-      // Add skill properties
+      // Add skill properties - save if we have any ranks
       SKILLS.forEach((skill) => {
-        const finalValue = skillPurchases[skill];
-        const archetypeBonus = selectedArchetype.skillBonuses?.[skill] || 0;
+        const purchasedRanks = skillPurchases[skill];
+        const archetypeBonus = selectedArchetype?.skillBonuses?.[skill] || 0;
+        const finalValue = archetypeBonus + purchasedRanks;
         
-        // Save property if value > 0 OR if archetype gives bonus
-        if (finalValue > 0 || archetypeBonus > 0) {
+        // Only save if we have ranks (to avoid cluttering with 0-rank skills)
+        if (finalValue > 0) {
           const propId = `skill-${skill}`;
           const linkedAttr = SKILL_ATTRIBUTES[skill];
           const prop: Property = {
@@ -805,7 +787,8 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
             baseValue: finalValue,
             linkedAttribute: linkedAttr,
           };
-          addProperty(newChar, prop);
+          // IMPORTANT: addProperty returns a new character - we must capture it!
+          newChar = addProperty(newChar, prop);
         }
       });
 
@@ -818,132 +801,53 @@ export function CharacterCreator({ onCharacterCreated }: CharacterCreatorProps) 
     return (
       <Card className="max-w-4xl mx-auto">
         <CardHeader>
-          <CardTitle>Review Character</CardTitle>
-          <CardDescription>Review your character before finalizing</CardDescription>
+          <CardTitle>Background & Finalize</CardTitle>
+          <CardDescription>Add background details (WIP) and finalize your character</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Name input at review (for regular mode) */}
-          {creationMode === 'regular' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium mb-2">Character Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                  placeholder={`Enter name (or leave blank for "${selectedArchetype.name}")`}
-                />
-              </div>
-              <Separator />
-            </>
-          )}
-
-          {/* Summary */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {creationMode === 'advanced' && (
-              <div>
-                <div className="text-sm text-muted-foreground">Name</div>
-                <div className="font-semibold">{name}</div>
-              </div>
-            )}
-            <div>
-              <div className="text-sm text-muted-foreground">Tier</div>
-              <div className="font-semibold">{tier}</div>
-            </div>
-            <div>
-              <div className="text-sm text-muted-foreground">Species</div>
-              <div className="font-semibold">{selectedSpecies.name}</div>
-            </div>
-            <div>
-              <div className="text-sm text-muted-foreground">Archetype</div>
-              <div className="font-semibold">{selectedArchetype.name}</div>
-            </div>
+          <div className="py-6 text-center text-muted-foreground">
+            <p className="mb-4">Background customization coming soon...</p>
           </div>
 
           <Separator />
 
-          {/* XP Breakdown */}
-          <div>
-            <h3 className="font-semibold mb-3">XP Expenditure</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Total XP (Tier {tier}):</span>
-                <span className="font-semibold">{xpTotal}</span>
+          <div className="bg-primary/5 p-4 rounded-lg">
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="text-sm text-muted-foreground">XP Remaining</div>
+                <div className="text-2xl font-bold text-primary">{xpRemaining} XP</div>
               </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Spent:</span>
-                <span>−{xpSpent}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between text-lg font-bold text-primary">
-                <span>Remaining:</span>
-                <span>{xpRemaining}</span>
+              <div className="text-sm">
+                <div>Total: {xpTotal} XP</div>
+                <div>Spent: {xpSpent} XP</div>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setStep('stats')} className="flex-1">
-              Back
-            </Button>
-            <Button onClick={handleCreate} className="flex-1">
-              Create Character
-            </Button>
-          </div>
+          <Button onClick={handleCreate} className="w-full" size="lg">
+            Create Character
+          </Button>
         </CardContent>
       </Card>
     );
-  };
+  }
+}
 
-  // Main render with stepper
+function PlaceholderStep({ title, nextStep, onContinue }: { title: string; nextStep: Step; onContinue: (step: Step) => void }) {
   return (
-    <div className="space-y-6">
-      {creationMode !== 'select' && (
-        <>
-          {/* Step indicator */}
-          <div className="flex items-center justify-center gap-2 text-sm flex-wrap">
-            {(creationMode === 'advanced' ? [
-                { key: 'basic', label: 'Basic' },
-                { key: 'species', label: 'Species' },
-                { key: 'archetype', label: 'Archetype' },
-                { key: 'keywords', label: 'Keywords' },
-                { key: 'stats', label: 'Stats' },
-                { key: 'review', label: 'Review' },
-              ] : [
-                { key: 'archetype', label: 'Archetype' },
-                { key: 'stats', label: 'Stats' },
-                { key: 'review', label: 'Review' },
-              ]).map((s, idx, arr) => (
-              <div key={s.key} className="flex items-center">
-                <div
-                  className={`px-3 py-1 rounded-full ${
-                    step === s.key
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {idx + 1}. {s.label}
-                </div>
-                {idx < arr.length - 1 && <div className="w-8 h-px bg-border mx-1" />}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Step content */}
-      {creationMode === 'select' && renderModeSelection()}
-      {creationMode !== 'select' && (
-        <>
-          {step === 'basic' && creationMode === 'advanced' && renderBasicStep()}
-          {step === 'species' && creationMode === 'advanced' && renderSpeciesStep()}
-          {step === 'archetype' && renderArchetypeStep()}
-          {step === 'keywords' && creationMode === 'advanced' && renderKeywordsStep()}
-          {step === 'stats' && renderStatsStep()}
-          {step === 'review' && renderReviewStep()}
-        </>
-      )}
-    </div>
+    <Card className="max-w-4xl mx-auto">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>Coming soon...</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="py-12 text-center text-muted-foreground">
+          <p className="mb-6">This step is work in progress.</p>
+          <Button onClick={() => onContinue(nextStep)}>
+            Continue
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

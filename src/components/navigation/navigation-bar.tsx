@@ -20,7 +20,7 @@ interface NavigationItem {
 
 const navigationItems: NavigationItem[] = [
   { label: "Codex", href: "/codex" },
-  { label: "Character", href: "/character" },
+  { label: "Characters", href: "/characters" },
 ];
 
 export function NavigationBar() {
@@ -45,7 +45,7 @@ export function NavigationBar() {
           : "bg-transparent",
       )}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo and Brand */}
           <Link
@@ -62,7 +62,7 @@ export function NavigationBar() {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - Aligned Right */}
           <div className="hidden lg:flex items-center space-x-1">
             {navigationItems.map((item) => (
               <div key={item.label} className="relative group">
@@ -81,9 +81,6 @@ export function NavigationBar() {
               <ThemeToggle variant="ghost" align="end" />
             </div>
           </div>
-
-          {/* CTA Button - Desktop */}
-          <div className="hidden lg:block"></div>
 
           {/* Mobile Menu Button + Theme Toggle */}
           <div className="lg:hidden flex items-center space-x-2">

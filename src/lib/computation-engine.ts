@@ -15,6 +15,7 @@
 import type { Entity, EntityStats, AttributeName, SkillName } from '@/types/entity';
 import type { Property, Attribute, Skill, Bonus, Effect } from '@/types/property-system';
 import { calculateDerivedStats } from '@/lib/dice-engine';
+import { getSpeciesById } from '@/data/species';
 
 /**
  * Convert display name to camelCase (e.g., "Ballistic Skill" -> "ballisticSkill")
@@ -104,6 +105,15 @@ function isSkillName(name: string): name is SkillName {
  */
 export function computeEntityStats(entity: Entity): EntityStats {
   // Step 1: Initialize base stats (attributes at 1, skills at 0)
+  // Get species data for speed
+  let baseSpeed = 6; // Default human speed
+  if (entity.species) {
+    const speciesData = getSpeciesById(entity.species);
+    if (speciesData) {
+      baseSpeed = speciesData.speed;
+    }
+  }
+  
   const stats: EntityStats = {
     strength: 1,
     toughness: 1,
@@ -117,7 +127,7 @@ export function computeEntityStats(entity: Entity): EntityStats {
     determination: 1,
     maxWounds: 0,
     maxShock: 0,
-    speed: 6,
+    speed: baseSpeed, // Use species speed
     passiveAwareness: 0,
     conviction: 1,
     resolve: 1,
@@ -221,17 +231,22 @@ export function computeEntityStats(entity: Entity): EntityStats {
     agility: stats.agility,
     intellect: stats.intellect,
     toughness: stats.toughness,
+    fellowship: stats.fellowship,
     tier: entity.tier,
+    awarenessSkill: stats.skills.awareness,
   });
 
   stats.defence = derived.defence;
   stats.determination = derived.determination;
-  stats.speed = derived.speed;
+  // Note: speed comes from species, don't override it
   stats.passiveAwareness = derived.passiveAwareness;
   stats.resolve = derived.resolve;
   stats.conviction = derived.conviction;
   stats.maxWounds = derived.maxWounds;
   stats.maxShock = derived.maxShock;
+  stats.resilience = derived.resilience;
+  stats.influence = derived.influence;
+  stats.wealth = derived.wealth;
 
   // Ensure no attributes go below 1
   stats.strength = Math.max(1, stats.strength);

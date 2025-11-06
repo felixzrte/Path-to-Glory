@@ -12,6 +12,8 @@ import type { QueryClient } from "@tanstack/react-query";
 import { DefaultCatchBoundary } from "@/components/default-catch-boundary";
 import { NotFound } from "@/components/not-found";
 import { ThemeProvider } from "@/components/theme";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/navigation/app-sidebar";
 import appCss from "@/styles.css?url";
 import { seo } from "@/utils/seo";
 
@@ -76,7 +78,12 @@ function RootComponent() {
         enableSystem
         disableTransitionOnChange={false}
       >
-        <Outlet />
+        <SidebarProvider>
+          <AppSidebar />
+          <main className="flex-1 w-full overflow-auto">
+            <Outlet />
+          </main>
+        </SidebarProvider>
       </ThemeProvider>
     </RootDocument>
   );
